@@ -278,6 +278,7 @@ async def cb(q: types.CallbackQuery):
 
 async def main():
     await start_workers()
+    await bot.delete_webhook(drop_pending_updates=True)
     logging.info("Bot started (polling)")
     await dp.start_polling(bot)
 
