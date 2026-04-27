@@ -67,7 +67,3 @@ The server starts on `0.0.0.0:7860`.
 - [aiogram](https://github.com/aiogram/aiogram) — Telegram Bot framework
 - [aiohttp](https://github.com/aio-libs/aiohttp) — Async HTTP server/client
 - FFmpeg — video processing
-
-## License
-
-MIT
