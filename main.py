@@ -276,13 +276,23 @@ async def cb(q: types.CallbackQuery):
 
 # ================= ENTRY =================
 
+async def health(r):
+    return web.Response(text="OK")
+
 async def main():
     await start_workers()
     await bot.delete_webhook(drop_pending_updates=True)
     logging.info("Bot started (polling)")
+    
+    app = web.Application()
+    app.router.add_get("/", health)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", 7860)
+    await site.start()
+    
     await dp.start_polling(bot)
-
-
+    
 if __name__ == "__main__":
     if not BOT_TOKEN:
         raise RuntimeError("Missing BOT_TOKEN env var")
