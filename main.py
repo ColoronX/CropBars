@@ -7,21 +7,15 @@ import logging
 from collections import Counter
 
 import aiohttp
-from aiohttp import web
-
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import CommandStart, Command
 from aiogram.types import FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
-
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram.client.session.aiohttp import AiohttpSession
 
 
 # ================= CONFIG =================
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-BASE_URL = os.getenv("BASE_URL")
-WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "secret")
 
 FFMPEG_PATH = "ffmpeg"
 PADDING = 30
@@ -34,8 +28,6 @@ os.makedirs(SESSION_DIR, exist_ok=True)
 
 logging.basicConfig(level=logging.INFO)
 
-
-# FIX: safer Telegram session (prevents timeout crashes)
 session = AiohttpSession(timeout=aiohttp.ClientTimeout(total=90))
 bot = Bot(token=BOT_TOKEN, session=session)
 
@@ -73,12 +65,12 @@ def delete_session(sid: str):
 
 def kb(session_id: str):
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton("No Text", callback_data=f"{session_id}:none")],
+        [InlineKeyboardButton(text="No Text", callback_data=f"{session_id}:none")],
         [
-            InlineKeyboardButton("Top", callback_data=f"{session_id}:top"),
-            InlineKeyboardButton("Bottom", callback_data=f"{session_id}:bottom"),
+            InlineKeyboardButton(text="Top", callback_data=f"{session_id}:top"),
+            InlineKeyboardButton(text="Bottom", callback_data=f"{session_id}:bottom"),
         ],
-        [InlineKeyboardButton("Both", callback_data=f"{session_id}:both")]
+        [InlineKeyboardButton(text="Both", callback_data=f"{session_id}:both")]
     ])
 
 
@@ -92,7 +84,6 @@ async def download_stream(file_path: str, out_path: str):
     async with aiohttp.ClientSession(timeout=timeout) as s:
         async with s.get(url) as r:
             r.raise_for_status()
-
             with open(out_path, "wb") as f:
                 async for chunk in r.content.iter_chunked(1024 * 64):
                     f.write(chunk)
@@ -284,68 +275,16 @@ async def cb(q: types.CallbackQuery):
     })
 
 
-# ================= WEBHOOK =================
-
-WEBHOOK_PATH = "/webhook"
-
-
-async def health(r):
-    return web.Response(text="OK")
-
-
-async def on_startup(app):
-    await start_workers()
-
-    webhook = f"{BASE_URL}{WEBHOOK_PATH}"
-
-    for i in range(5):
-        try:
-            await bot.set_webhook(
-                webhook,
-                secret_token=WEBHOOK_SECRET,
-                drop_pending_updates=True
-            )
-            logging.info("Webhook set successfully")
-            return
-        except Exception as e:
-            logging.error(f"Webhook retry {i+1}: {e}")
-            await asyncio.sleep(2 ** i)
-
-    logging.error("Webhook failed permanently")
-
-
-async def on_shutdown(app):
-    try:
-        await bot.delete_webhook()
-    except:
-        pass
-
-    await bot.session.close()
-
-
-def create_app():
-    app = web.Application()
-
-    app.router.add_get("/", health)
-
-    SimpleRequestHandler(
-        dispatcher=dp,
-        bot=bot,
-        secret_token=WEBHOOK_SECRET
-    ).register(app, path=WEBHOOK_PATH)
-
-    setup_application(app, dp, bot=bot)
-
-    app.on_startup.append(on_startup)
-    app.on_shutdown.append(on_shutdown)
-
-    return app
-
-
 # ================= ENTRY =================
 
-if __name__ == "__main__":
-    if not BOT_TOKEN or not BASE_URL:
-        raise RuntimeError("Missing env vars")
+async def main():
+    await start_workers()
+    logging.info("Bot started (polling)")
+    await dp.start_polling(bot)
 
-    web.run_app(create_app(), host="0.0.0.0", port=7860)
+
+if __name__ == "__main__":
+    if not BOT_TOKEN:
+        raise RuntimeError("Missing BOT_TOKEN env var")
+
+    asyncio.run(main())
