@@ -10,7 +10,7 @@ import aiohttp
 from aiogram import Bot, Dispatcher, F, types
 from aiogram.filters import CommandStart, Command
 from aiogram.types import FSInputFile, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.client.session.aiohttp import AiohttpSession
+
 
 
 # ================= CONFIG =================
@@ -28,8 +28,7 @@ os.makedirs(SESSION_DIR, exist_ok=True)
 
 logging.basicConfig(level=logging.INFO)
 
-session = AiohttpSession(timeout=aiohttp.ClientTimeout(total=90))
-bot = Bot(token=BOT_TOKEN, session=session)
+bot = Bot(token=BOT_TOKEN)
 
 dp = Dispatcher()
 
